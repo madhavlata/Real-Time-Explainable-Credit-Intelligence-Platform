@@ -2,11 +2,17 @@ import React, { useState } from "react";
 import SearchBar from "./components/SearchBar";
 import Dashboard from "./components/Dashboard";
 
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayString = () => {
+  return new Date().toISOString().split("T")[0];
+};
+
 function App() {
-  const [ticker, setTicker] = useState("AAPL"); // Set a default ticker
+  const [ticker, setTicker] = useState("AAPL");
+  // 1. Add state for the selected date, defaulting to today
+  const [date, setDate] = useState(getTodayString());
 
   const handleSearch = (searchTicker) => {
-    // Prevent empty searches
     if (searchTicker) {
       setTicker(searchTicker.toUpperCase());
     }
@@ -24,9 +30,28 @@ function App() {
           </p>
         </header>
 
-        <SearchBar onSearch={handleSearch} initialValue={ticker} />
+        {/* 2. Add a container for the inputs */}
+        <div className="flex flex-wrap items-center gap-4 mb-8">
+          <SearchBar onSearch={handleSearch} initialValue={ticker} />
+          <div className="flex items-center gap-2">
+            <label htmlFor="date-picker" className="font-medium text-gray-300">
+              Date:
+            </label>
+            <input
+              id="date-picker"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              max={getTodayString()} // Prevent selecting future dates
+              className="p-3 bg-gray-700 text-white border-2 border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </div>
+        </div>
 
-        {ticker && <Dashboard key={ticker} ticker={ticker} />}
+        {/* 3. Pass both ticker and date down to the Dashboard */}
+        {ticker && date && (
+          <Dashboard key={`${ticker}-${date}`} ticker={ticker} date={date} />
+        )}
       </div>
     </div>
   );

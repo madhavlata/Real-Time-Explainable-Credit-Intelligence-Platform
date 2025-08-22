@@ -10,3 +10,7 @@ joblib
 scikit-learn
 xgboost
 gunicorn
+gnews # <-- ADD
+transformers # <-- ADD
+torch # <-- ADD (dependency for transformers)
+shap # <-- ADD

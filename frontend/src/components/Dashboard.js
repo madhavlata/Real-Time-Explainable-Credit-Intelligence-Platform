@@ -1,56 +1,61 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import ScoreGauge from "./ScoreGauge";
-import FeaturesTable from "./FeaturesTable";
+import CreditScore from "./CreditScore";
+import RiskProbabilities from "./RiskProbabilities";
+import SentimentGauge from "./SentimentGauge";
+import ShapWaterfallChart from "./ShapWaterfallChart";
+// 1. Import the ScoreHistoryChart component
 import ScoreHistoryChart from "./ScoreHistoryChart";
 
-function Dashboard({ ticker }) {
+function Dashboard({ ticker, date }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadingMessage, setLoadingMessage] = useState(
+    `Loading data for ${ticker}...`
+  );
 
   useEffect(() => {
-    if (!ticker) return;
+    setData(null);
+    setLoading(true);
+    setError("");
+    setLoadingMessage(`Loading data for ${ticker} on ${date}...`);
+
+    const timer = setTimeout(() => {
+      setLoadingMessage(
+        `This is a new ticker. Please wait while we perform the analysis (this may take up to 30 seconds)...`
+      );
+    }, 3000);
 
     const fetchData = async () => {
-      setLoading(true);
-      setError("");
       try {
         const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/scores/${ticker}`
+          `${process.env.REACT_APP_API_URL}/scores/${ticker}/${date}`
         );
-
-        // **MODIFIED SECTION**
-        // The API returns an array, so we check if it's valid and take the first element.
-        if (response.data && response.data.length > 0) {
-          setData(response.data[0]);
-        } else {
-          // Handle cases where the API returns an empty array for a valid ticker
-          setError(`No score data found for ${ticker}.`);
-          setData(null);
-        }
+        setData(response.data);
       } catch (err) {
-        // Handle network errors or if the ticker doesn't exist (404)
-        setError(
-          `Failed to fetch data for ${ticker}. Please check the ticker and try again.`
-        );
-        setData(null);
+        const detail =
+          err.response?.data?.detail ||
+          "Please check the ticker and try again.";
+        setError(`Failed to fetch data for ${ticker} on ${date}. ${detail}`);
       } finally {
         setLoading(false);
+        clearTimeout(timer);
       }
     };
 
     fetchData();
-  }, [ticker]); // Re-run this effect ONLY when the ticker changes
+
+    return () => clearTimeout(timer);
+  }, [ticker, date]);
 
   if (loading) {
     return (
-      <div className="text-center mt-20 text-gray-400">
-        <p>Loading data for {ticker}...</p>
+      <div className="text-center mt-20 text-yellow-300">
+        <p>{loadingMessage}</p>
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="text-center mt-20 text-red-400 bg-red-900/20 p-6 rounded-lg">
@@ -58,39 +63,31 @@ function Dashboard({ ticker }) {
       </div>
     );
   }
-
-  // This check prevents a crash if data is null before rendering
   if (!data) return null;
 
   return (
-    <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Main Score Section */}
-      <div className="lg:col-span-1 bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold mb-4 text-gray-200">
-            {data.ticker} Credit Score
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Last updated: {new Date(data.date).toLocaleDateString()}
-          </p>
+    // Use a flex column layout for the whole dashboard area
+    <div className="flex flex-col gap-6 mt-8">
+      {/* Top row with the main grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Left Column: Key Metrics */}
+        <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6">
+          <CreditScore score={data.creditworthiness} />
+          <RiskProbabilities risks={data.risk_probs} />
+          <SentimentGauge sentiment={data.features.decayed_sentiment} />
         </div>
-        <ScoreGauge score={data.score} />
+
+        {/* Right Column: Explainability */}
+        <div className="lg:col-span-2 xl:col-span-3">
+          <ShapWaterfallChart explanations={data.shap_explanations} />
+        </div>
       </div>
 
-      {/* Financial Features Table */}
-      <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-200">
-          Key Financial Features
-        </h2>
-        <FeaturesTable features={data.features} />
-      </div>
-
-      {/* Historical Chart */}
-      <div className="lg:col-span-3 bg-gray-800 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-200">
+      {/* 2. Add the ScoreHistoryChart in a new full-width row */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
+        <h2 className="text-xl font-semibold mb-4 text-gray-200">
           Score History
         </h2>
-        {/* The chart still gets all historical data using its own API call */}
         <ScoreHistoryChart ticker={ticker} />
       </div>
     </div>

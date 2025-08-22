@@ -1,14 +1,14 @@
 # app/main.py
 from fastapi import FastAPI, HTTPException
-# --- NEW IMPORT ---
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from typing import List, Dict
+from typing import List, Dict, Any
 import pytz
 
 from . import database
 from .tasks import run_daily_scoring_job
-from .inference import get_ticker_features, calculate_creditworthiness
+# --- UPDATED IMPORTS ---
+from .inference import get_ticker_features, calculate_creditworthiness_with_explain
 
 # Initialize the FastAPI app
 app = FastAPI(
@@ -18,23 +18,19 @@ app = FastAPI(
 )
 
 # --- CORS MIDDLEWARE SETUP ---
-# Define the list of allowed origins (your frontend URLs)
 origins = [
-    "http://localhost:3000",      # Your local development frontend
-    "http://localhost:5173",      # Vite's default local dev port
+    "http://localhost:3000",
+    "http://localhost:5173",
     "https://real-time-explainable-credit-intell.vercel.app",
-    # "https://your-deployed-frontend-url.com", # Add your deployed frontend URL here
+    # "https://your-deployed-frontend-url.com",
 ]
-
-# Add the CORS middleware to the application
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        # List of origins that are allowed to make requests
-    allow_credentials=True,       # Allow cookies to be included in requests
-    allow_methods=["*"],          # Allow all methods (GET, POST, etc.)
-    allow_headers=["*"],          # Allow all headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 
 # --- SCHEDULER SETUP ---
 scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Kolkata"))
@@ -57,7 +53,8 @@ def read_root():
     """Root endpoint to check if the API is running."""
     return {"status": "Credit Intelligence API is running"}
 
-@app.get("/scores/latest", tags=["Scores"], response_model=List[Dict])
+# Note: The response_model for these endpoints will now be a list of the new, complex objects
+@app.get("/scores/latest", tags=["Scores"], response_model=List[Dict[str, Any]])
 def get_latest_scores():
     """Get the most recent creditworthiness score for all monitored tickers."""
     scores = database.get_latest_scores()
@@ -65,7 +62,7 @@ def get_latest_scores():
         raise HTTPException(status_code=404, detail="No scores found in the database.")
     return scores
 
-@app.get("/scores/{ticker}", tags=["Scores"], response_model=List[Dict])
+@app.get("/scores/{ticker}", tags=["Scores"], response_model=List[Dict[str, Any]])
 def get_scores_for_ticker(ticker: str):
     """Get the historical creditworthiness scores for a specific ticker."""
     scores = database.get_scores_by_ticker(ticker.upper())
@@ -73,14 +70,12 @@ def get_scores_for_ticker(ticker: str):
         raise HTTPException(status_code=404, detail=f"No scores found for ticker '{ticker}'.")
     return scores
 
-@app.get("/scores/{ticker}/{date}", tags=["Scores"], response_model=Dict)
+# --- HEAVILY UPDATED ENDPOINT WITH NEW INFERENCE LOGIC ---
+@app.get("/scores/{ticker}/{date}", tags=["Scores"], response_model=Dict[str, Any])
 def get_score_for_ticker_on_date(ticker: str, date: str):
     """
-    Get the creditworthiness score for a specific ticker on a given date.
-    If the date is not a trading day, the score from the most recent previous
-    trading day will be returned.
-    If the ticker is not in the database, it will be calculated on-the-fly,
-    saved, and then returned.
+    Get the creditworthiness score and explanation for a specific ticker and date.
+    If data is not in the DB, it's calculated on-the-fly.
     """
     ticker_upper = ticker.upper()
     score_data = database.get_score_for_date_or_earlier(ticker_upper, date)
@@ -91,14 +86,24 @@ def get_score_for_ticker_on_date(ticker: str, date: str):
 
     print(f"Data for {ticker_upper} not found in DB. Calculating on-the-fly...")
     try:
+        # 1. Get features using the new logic (which includes sentiment)
         features = get_ticker_features(ticker_upper, date)
-        score = calculate_creditworthiness(features, method="weighted")
+        features["ticker"] = ticker_upper
+
+        # 2. Calculate score and explanations
+        creditworthiness, probs, shap_metadata = calculate_creditworthiness_with_explain(features, method="weighted")
+
+        # 3. Prepare the full data object
         new_score_data = {
             "ticker": ticker_upper,
             "date": features['date'],
-            "score": float(score),
+            "creditworthiness": creditworthiness,
+            "risk_probs": probs,
+            "shap_explanations": shap_metadata,
             "features": {k: v for k, v in features.items() if k not in ['ticker', 'date']}
         }
+
+        # 4. Save to DB and return
         database.save_score_data(new_score_data.copy())
         return new_score_data
 
@@ -106,7 +111,7 @@ def get_score_for_ticker_on_date(ticker: str, date: str):
         print(f"Error calculating on-the-fly for {ticker_upper}: {e}")
         raise HTTPException(
             status_code=404, 
-            detail=f"Could not fetch or calculate data for ticker '{ticker_upper}'. It may be an invalid symbol or have no data for the requested period."
+            detail=f"Could not fetch or calculate data for ticker '{ticker_upper}'. It may be an invalid symbol."
         )
     except Exception as e:
         print(f"A general error occurred during on-the-fly calculation for {ticker_upper}: {e}")
