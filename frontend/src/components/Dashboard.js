@@ -4,8 +4,9 @@ import CreditScore from "./CreditScore";
 import RiskProbabilities from "./RiskProbabilities";
 import SentimentGauge from "./SentimentGauge";
 import ShapWaterfallChart from "./ShapWaterfallChart";
-// 1. Import the ScoreHistoryChart component
 import ScoreHistoryChart from "./ScoreHistoryChart";
+// 1. Import the GeminiSummary component
+import GeminiSummary from "./GeminiSummary";
 
 function Dashboard({ ticker, date }) {
   const [data, setData] = useState(null);
@@ -66,7 +67,6 @@ function Dashboard({ ticker, date }) {
   if (!data) return null;
 
   return (
-    // Use a flex column layout for the whole dashboard area
     <div className="flex flex-col gap-6 mt-8">
       {/* Top row with the main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -83,7 +83,16 @@ function Dashboard({ ticker, date }) {
         </div>
       </div>
 
-      {/* 2. Add the ScoreHistoryChart in a new full-width row */}
+      {/* 2. Add the GeminiSummary component in a new full-width row */}
+      <div>
+        <GeminiSummary
+          ticker={data.ticker}
+          creditworthiness={data.creditworthiness}
+          shapExplanations={data.shap_explanations}
+        />
+      </div>
+
+      {/* Score History Chart */}
       <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-gray-200">
           Score History
