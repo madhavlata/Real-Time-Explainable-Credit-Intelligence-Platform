@@ -1,13 +1,13 @@
 # app/main.py
 from fastapi import FastAPI, HTTPException
+# --- NEW IMPORT ---
+from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from typing import List, Dict
 import pytz
 
 from . import database
 from .tasks import run_daily_scoring_job
-# --- NEW IMPORTS ---
-# Import the core calculation functions from your inference script
 from .inference import get_ticker_features, calculate_creditworthiness
 
 # Initialize the FastAPI app
@@ -17,7 +17,26 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- Scheduler Setup ---
+# --- CORS MIDDLEWARE SETUP ---
+# Define the list of allowed origins (your frontend URLs)
+origins = [
+    "http://localhost:3000",      # Your local development frontend
+    "http://localhost:5173",      # Vite's default local dev port
+    "https://real-time-explainable-credit-intell.vercel.app/",
+    # "https://your-deployed-frontend-url.com", # Add your deployed frontend URL here
+]
+
+# Add the CORS middleware to the application
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,        # List of origins that are allowed to make requests
+    allow_credentials=True,       # Allow cookies to be included in requests
+    allow_methods=["*"],          # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],          # Allow all headers
+)
+
+
+# --- SCHEDULER SETUP ---
 scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Kolkata"))
 
 @app.on_event("startup")
@@ -32,7 +51,7 @@ def shutdown_scheduler():
     print("Scheduler shut down.")
 
 
-# --- API Endpoints ---
+# --- API ENDPOINTS ---
 @app.get("/", tags=["Status"])
 def read_root():
     """Root endpoint to check if the API is running."""
@@ -54,7 +73,6 @@ def get_scores_for_ticker(ticker: str):
         raise HTTPException(status_code=404, detail=f"No scores found for ticker '{ticker}'.")
     return scores
 
-# --- UPDATED ENDPOINT WITH ON-DEMAND LOGIC ---
 @app.get("/scores/{ticker}/{date}", tags=["Scores"], response_model=Dict)
 def get_score_for_ticker_on_date(ticker: str, date: str):
     """
@@ -67,45 +85,30 @@ def get_score_for_ticker_on_date(ticker: str, date: str):
     ticker_upper = ticker.upper()
     score_data = database.get_score_for_date_or_earlier(ticker_upper, date)
     
-    # If data is found in the database, return it immediately
     if score_data:
         print(f"Found cached data for {ticker_upper} in DB.")
         return score_data
 
-    # --- On-Demand Calculation Logic ---
-    # If no data is found, calculate it now
     print(f"Data for {ticker_upper} not found in DB. Calculating on-the-fly...")
     try:
-        # 1. Get features for the requested date using your existing logic
         features = get_ticker_features(ticker_upper, date)
-
-        # 2. Calculate the creditworthiness score
         score = calculate_creditworthiness(features, method="weighted")
-
-        # 3. Prepare data for storage (ensure types are correct)
         new_score_data = {
             "ticker": ticker_upper,
-            "date": features['date'], # Use the actual date from features
+            "date": features['date'],
             "score": float(score),
             "features": {k: v for k, v in features.items() if k not in ['ticker', 'date']}
         }
-
-        # 4. Save the new data to MongoDB for future requests
-        # Use a copy to prevent modification of the dict we are about to return
         database.save_score_data(new_score_data.copy())
-
-        # 5. Return the newly calculated data
         return new_score_data
 
     except ValueError as e:
-        # This catches errors from yfinance if the ticker is invalid or has no data
         print(f"Error calculating on-the-fly for {ticker_upper}: {e}")
         raise HTTPException(
             status_code=404, 
             detail=f"Could not fetch or calculate data for ticker '{ticker_upper}'. It may be an invalid symbol or have no data for the requested period."
         )
     except Exception as e:
-        # Catch any other unexpected errors during calculation
         print(f"A general error occurred during on-the-fly calculation for {ticker_upper}: {e}")
         raise HTTPException(
             status_code=500,
