@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pymongo
+apscheduler
+python-dotenv
+pandas
+yfinance
+numpy
+joblib
+scikit-learn
+xgboost
+gunicorn

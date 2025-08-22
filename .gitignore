@@ -1,0 +1,48 @@
+# =================================================================
+# General & OS Specific
+# =================================================================
+# Ignore IDE and editor folders
+.vscode/
+.idea/
+
+# Ignore OS-generated files
+.DS_Store
+Thumbs.db
+
+
+# =================================================================
+# Backend (Python/FastAPI)
+# =================================================================
+# Ignore the virtual environment folder
+backend/venv/
+backend/.venv/
+
+# Ignore Python cache files
+backend/__pycache__/
+backend/*.pyc
+
+# CRITICAL: Ignore environment variables file
+# This file contains your secret database connection string
+backend/.env
+
+
+# =================================================================
+# Frontend (Node.js/React/Vite)
+# =================================================================
+# Ignore dependency folder, which can be huge
+frontend/node_modules/
+
+# Ignore build output directory
+frontend/dist/
+
+# Ignore log files
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Ignore local environment variables for the frontend
+frontend/.env.local
+frontend/.env.*.local
+
+# Ignore Vite cache
+frontend/.vite/
