@@ -9,7 +9,6 @@ import shap
 from gnews import GNews
 from transformers import pipeline
 from datetime import datetime, timedelta
-import google.generativeai as genai
 from dotenv import load_dotenv
 
 # --- START: MEMORY OPTIMIZATION ---
@@ -26,16 +25,15 @@ SENTIMENT_PIPELINE = pipeline(
 
 # 2. Load ML models and scaler globally
 MODELS = {
-    "label_5d": joblib.load("xgb_model_label_5d.pkl"),
-    "label_20d": joblib.load("xgb_model_label_20d.pkl"),
-    "label_60d": joblib.load("xgb_model_label_60d.pkl"),
+    "label_5d": joblib.load("./models/xgb_model_label_5d.pkl"),
+    "label_20d": joblib.load("./models/xgb_model_label_20d.pkl"),
+    "label_60d": joblib.load("./models/xgb_model_label_60d.pkl"),
 }
-SCALER = joblib.load("scaler.pkl")
+SCALER = joblib.load("./models/scaler.pkl")
 
 # 3. Load other resources globally
 TRAINING_DF = pd.read_csv("final training.csv", parse_dates=["date"])
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 print("Models loaded successfully.")
 # --- END: MEMORY OPTIMIZATION ---
