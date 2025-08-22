@@ -23,6 +23,7 @@ app = FastAPI(
 # These are the URLs that are allowed to make requests to your API.
 origins = [
     "http://localhost:3000",  # Your local React app
+    "https://real-time-explainable-credit-intell.vercel.app"
     # "https://your-deployed-frontend-url.com", # Add your deployed frontend URL here later
 ]
 
