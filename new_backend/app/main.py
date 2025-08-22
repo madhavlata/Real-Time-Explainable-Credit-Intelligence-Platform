@@ -22,7 +22,7 @@ app = FastAPI(
 origins = [
     "http://localhost:3000",      # Your local development frontend
     "http://localhost:5173",      # Vite's default local dev port
-    "https://real-time-explainable-credit-intell.vercel.app/",
+    "https://real-time-explainable-credit-intell.vercel.app",
     # "https://your-deployed-frontend-url.com", # Add your deployed frontend URL here
 ]
 
