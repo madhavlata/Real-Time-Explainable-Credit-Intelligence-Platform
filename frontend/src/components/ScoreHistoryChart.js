@@ -19,10 +19,13 @@ function ScoreHistoryChart({ ticker }) {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        // IMPORTANT: Replace with your actual history endpoint
+        // --- THIS IS THE FIX ---
+        // Updated the URL to match your actual FastAPI endpoint for historical data
         const response = await axios.get(
-          `http://localhost:5000/api/history/${ticker}`
+          `${process.env.REACT_APP_API_URL}/scores/${ticker}`
         );
+        // -----------------------
+
         // Format date for better chart readability
         const formattedData = response.data.map((item) => ({
           ...item,
@@ -31,7 +34,8 @@ function ScoreHistoryChart({ ticker }) {
             day: "numeric",
           }),
         }));
-        setHistory(formattedData);
+        // Reverse the array so the chart shows time progressing from left to right
+        setHistory(formattedData.reverse());
       } catch (err) {
         console.error("Failed to fetch history:", err);
         setHistory([]); // Clear data on error

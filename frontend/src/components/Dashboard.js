@@ -16,12 +16,21 @@ function Dashboard({ ticker }) {
       setLoading(true);
       setError("");
       try {
-        // IMPORTANT: Replace with your actual backend URL
         const response = await axios.get(
-          `https://real-time-explainable-credit.onrender.com/scores/${ticker}`
+          `${process.env.REACT_APP_API_URL}/scores/${ticker}`
         );
-        setData(response.data);
+
+        // **MODIFIED SECTION**
+        // The API returns an array, so we check if it's valid and take the first element.
+        if (response.data && response.data.length > 0) {
+          setData(response.data[0]);
+        } else {
+          // Handle cases where the API returns an empty array for a valid ticker
+          setError(`No score data found for ${ticker}.`);
+          setData(null);
+        }
       } catch (err) {
+        // Handle network errors or if the ticker doesn't exist (404)
         setError(
           `Failed to fetch data for ${ticker}. Please check the ticker and try again.`
         );
@@ -37,7 +46,7 @@ function Dashboard({ ticker }) {
   if (loading) {
     return (
       <div className="text-center mt-20 text-gray-400">
-        <p>Loading data for ${ticker}...</p>
+        <p>Loading data for {ticker}...</p>
       </div>
     );
   }
@@ -50,6 +59,7 @@ function Dashboard({ ticker }) {
     );
   }
 
+  // This check prevents a crash if data is null before rendering
   if (!data) return null;
 
   return (
@@ -80,6 +90,7 @@ function Dashboard({ ticker }) {
         <h2 className="text-2xl font-semibold mb-4 text-gray-200">
           Score History
         </h2>
+        {/* The chart still gets all historical data using its own API call */}
         <ScoreHistoryChart ticker={ticker} />
       </div>
     </div>

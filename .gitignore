@@ -9,17 +9,31 @@
 .DS_Store
 Thumbs.db
 
+# Ignore any local environment variable files at the root
+/.env
+/.env.local
+
 
 # =================================================================
 # Backend (Python/FastAPI)
 # =================================================================
-# Ignore the virtual environment folder
+# Ignore virtual environment folders
 backend/venv/
 backend/.venv/
 
 # Ignore Python cache files
 backend/__pycache__/
 backend/*.pyc
+
+# Ignore testing and type-checking cache
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.coverage
+
+# Ignore Python build artifacts
+backend/build/
+backend/dist/
+backend/*.egg-info/
 
 # CRITICAL: Ignore environment variables file
 # This file contains your secret database connection string
@@ -29,11 +43,12 @@ backend/.env
 # =================================================================
 # Frontend (Node.js/React/Vite)
 # =================================================================
-# Ignore dependency folder, which can be huge
+# Ignore dependency folder, which is huge
 frontend/node_modules/
 
-# Ignore build output directory
+# Ignore build output directories for both Vite and Create React App
 frontend/dist/
+frontend/build/
 
 # Ignore log files
 frontend/npm-debug.log*
@@ -41,8 +56,13 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
 # Ignore local environment variables for the frontend
+# FIX: Corrected typo from "fronted" to "frontend"
+frontend/.env
 frontend/.env.local
 frontend/.env.*.local
 
-# Ignore Vite cache
+# Ignore Vite-specific cache
 frontend/.vite/
+
+# Ignore testing coverage reports
+frontend/coverage/
