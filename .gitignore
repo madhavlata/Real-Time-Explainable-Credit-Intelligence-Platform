@@ -18,26 +18,27 @@ Thumbs.db
 # Backend (Python/FastAPI)
 # =================================================================
 # Ignore virtual environment folders
-backend/venv/
-backend/.venv/
+new_backend/venv/
+new_backend/.venv/
 
 # Ignore Python cache files
-backend/__pycache__/
-backend/*.pyc
+new_backend/__pycache__/
+new_backend/*.pyc
 
 # Ignore testing and type-checking cache
-backend/.pytest_cache/
-backend/.mypy_cache/
-backend/.coverage
+new_backend/.pytest_cache/
+new_backend/.mypy_cache/
+new_backend/.coverage
 
 # Ignore Python build artifacts
-backend/build/
-backend/dist/
-backend/*.egg-info/
+new_backend/build/
+new_backend/dist/
+new_backend/*.egg-info/
 
 # CRITICAL: Ignore environment variables file
 # This file contains your secret database connection string
-backend/.env
+new_backend/.env
+new_backend\.env
 
 
 # =================================================================
